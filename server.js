@@ -17,15 +17,15 @@ app.get('/', (req, res) => {
 
 // 🇹🇳 Banque de Questions Tunisiennes
 const triviaBank = [
-  { q: "أي فريق تونسي فاز بدوري أبطال أفريقيا 2011؟", a: "الترجي الرياضي" },
+  { q: "أي فريق  فاز بدوري أبطال أفريقيا 2014؟", a: "TP MAZEMBE" },
   { q: "من هو هداف المنتخب التونسي التاريخي؟", a: "عصام جمعة" },
   { q: "مسلسل 'مكتوب' من بطولة أي ممثلة شهيرة؟", a: "هند صبري" },
-  { q: "ما هو لقب المنتخب التونسي؟", a: "نسور قرطاج" },
-  { q: "في أي مدينة يقع ملعب 'حمادي العقربي'؟", a: "رادس" },
+  { q: "Dans le feuilleton dramatique Maktoub, quel est le métier du personnage principal interprété par Dhafer El Abidine ?؟", a: "Médecin" },
+  { q: "في أي مدينة يقع ملعب 'الطيب المهيري'؟", a: "صفاقس" },
   { q: "من هو بطل مسلسل 'النوبة'؟", a: "عبد الحميد بوشناق (المخرج) / الشاذلي" },
-  { q: "أي فريق يلقب بـ 'الدكية'؟", a: "النادي الإفريقي" },
+  { q: "le plus athlete medailles aux jeu olympique tunisiens c'est qui?'؟", a: "Mohammed Gammoudi" },
   { q: "ما هي الأكلة الشعبية التونسية الأولى؟", a: "الكسكسي" },
-  { q: "كم نجمة على شعار الترجي؟", a: "أربع نجمات" },
+  { q: "De quel célèbre quartier populaire de Tunis la série dramatique Denya Okhra tire-t-elle son nom ?؟", a: "Jbal Lahmer" },
   { q: "من هو المعلق الرياضي التونسي الشهير؟", a: "عصام الشوالي" }
 ];
 
