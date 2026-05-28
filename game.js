@@ -59,7 +59,7 @@ socket.on('updateLobby', (data) => {
 
 function renderLobby(data) {
   const grid = document.getElementById('lobbyPlayers');
-  const playerSlots = [0, 1, 2, 3];
+  const playerSlots = [0, 1, 2];  // ⬅️ Only 3 slots now!
   
   grid.innerHTML = playerSlots.map((i) => {
     const player = data.players[i];
@@ -68,9 +68,9 @@ function renderLobby(data) {
     </div>`;
   }).join('');
   
-  // Show start button when 3-4 players
+  // Show start button when 2-3 players (was 3-4)
   const startBtn = document.getElementById('startBtn');
-  if (data.playerCount >= 3) {
+  if (data.playerCount >= 2) {  // ⬅️ Changed from 3
     startBtn.classList.remove('hidden');
   } else {
     startBtn.classList.add('hidden');
