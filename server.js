@@ -29,10 +29,17 @@ const triviaBank = [
   { q: "من هو المعلق الرياضي التونسي الشهير؟", a: "عصام الشوالي" }
 ];
 
+// Boîtes par défaut
+const defaultBoxes = [
+  { type: 'grand', label: '👑 10DT' },
+  { type: 'forfeit', label: '😈 10 pompes' },
+  { type: 'forfeit', label: '🖐️ giflet des tes amis' }
+];
+
 const rooms = {};
 
 io.on('connection', (socket) => {
-  
+
   socket.on('createRoom', () => {
     const roomCode = Math.random().toString(36).substring(2, 7).toUpperCase();
     rooms[roomCode] = {
@@ -41,6 +48,7 @@ io.on('connection', (socket) => {
       currentRound: 0,
       totalRounds: 3,
       gameStarted: false,
+      boxesCustom: null,
       questions: [],
       qIndex: 0,
       buzzerLocked: true
@@ -64,16 +72,32 @@ io.on('connection', (socket) => {
     }
   });
 
+  // HOST configure les boîtes
+  socket.on('setBoxes', ({ roomCode, grandLabel, forfeit1Label, forfeit2Label }) => {
+    const room = rooms[roomCode];
+    if (!room) return;
+
+    room.boxesCustom = [
+      { type: 'grand', label: grandLabel?.trim() || '👑 10DT' },
+      { type: 'forfeit', label: forfeit1Label?.trim() || '😈 10 pompes' },
+      { type: 'forfeit', label: forfeit2Label?.trim() || '🖐️ giflet' }
+    ];
+    io.to(roomCode).emit('boxesReady');
+  });
+
   socket.on('startGame', (roomCode) => {
     const room = rooms[roomCode];
     if (!room || room.players.length < 2) return;
-    
+
     room.gameStarted = true;
-    const contents = ['💰 $10,000', '🎁 Prize', '😈 Forfeit'];
+    const contents = room.boxesCustom ? [...room.boxesCustom] : [...defaultBoxes];
+
+    // Mélange
     for (let i = contents.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [contents[i], contents[j]] = [contents[j], contents[i]];
     }
+
     room.players.forEach((p, i) => { p.box = contents[i]; });
     room.players.forEach(p => { io.to(p.id).emit('revealBox', { content: p.box }); });
     io.to(room.host).emit('hostView', { players: room.players });
@@ -93,7 +117,7 @@ io.on('connection', (socket) => {
     });
   });
 
-  // ===== LOGIQUE RAPID FIRE (10 QUESTIONS) =====
+  // ===== RAPID FIRE (10 QUESTIONS) =====
   socket.on('startRapidFire', (roomCode) => {
     const room = rooms[roomCode];
     if (!room) return;
@@ -133,7 +157,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // ===== FIN DE ROUND & SWAP =====
+  // ===== FIN ROUND & SWAP =====
   socket.on('getPlayersForWinner', (roomCode) => {
     const room = rooms[roomCode];
     if (room) io.to(room.host).emit('playersForWinner', { players: room.players });
