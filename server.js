@@ -126,7 +126,49 @@ io.on('connection', (socket) => {
   socket.on('endGame', (roomCode) => {
     io.to(roomCode).emit('finalReveal', { players: rooms[roomCode]?.players || [] });
   });
+  // ===== RAPID FIRE LOGIC =====
+  
+  // Banque de questions 🇹🇳
+  const triviaBank = [
+    { q: "أي فريق تونسي فاز بدوري أبطال أفريقيا 2011؟", a: "الترجي الرياضي" },
+    { q: "من هو هداف المنتخب التونسي التاريخي؟", a: "عصام جمعة" },
+    { q: "مسلسل 'مكتوب' من بطولة أي ممثلة شهيرة؟", a: "هند صبري" },
+    { q: "ما هو لقب المنتخب التونسي؟", a: "نسور قرطاج" },
+    { q: "في أي مدينة يقع ملعب 'مصطفى بن جنات'؟", a: "رادس" },
+    { q: "من هو 'فيلسوف' السينما التونسية الكوميدية؟", a: "علي بنور" }
+  ];
 
+  // Le Host demande une nouvelle question
+  socket.on('getQuestion', (roomCode) => {
+    const room = rooms[roomCode];
+    if (!room) return;
+    
+    // On choisit une question au hasard
+    const randomQ = triviaBank[Math.floor(Math.random() * triviaBank.length)];
+    
+    // On débloque les buzzers des joueurs
+    room.buzzerLocked = false; 
+    
+    // On envoie la question SEULEMENT au Host (avec la réponse)
+    io.to(room.host).emit('hostQuestion', randomQ);
+    
+    // On dit aux joueurs : "Préparez-vous à buzzer !"
+    room.players.forEach(p => {
+      io.to(p.id).emit('readyToBuzz');
+    });
+  });
+
+  // Un joueur appuie sur le BUZZER
+  socket.on('buzz', ({ roomCode, playerName }) => {
+    const room = rooms[roomCode];
+    // Si personne n'a encore buzzé (verrou ouvert)
+    if (room && !room.buzzerLocked) {
+      room.buzzerLocked = true; // On ferme le verrou IMMÉDIATEMENT
+      
+      // On informe TOUT LE MONDE qui a gagné la vitesse
+      io.to(roomCode).emit('buzzWinner', { playerName });
+    }
+  });
   socket.on('disconnect', () => {
     for (const roomCode in rooms) {
       const room = rooms[roomCode];
