@@ -151,26 +151,41 @@ socket.on('challenge', (data) => {
     socket.emit('getPlayersForWinner', roomCode);
   } else {
     // Si c'est le Rapid Fire, on affiche un Gros Buzzer !
+  // Dans socket.on('challenge', (data) => { ... })
+
+  if (myRole === 'host') {
+    // Le HOST voit un bouton pour lancer la première question
+    content.innerHTML = `
+      <div class="glass-card">
+        <h2 class="challenge-title">${names[data.type]}</h2>
+        ${data.type === 'rapidFire' ? 
+          `<div id="hostQuestionBox">
+             <p>اضغط لعرض السؤال الأول</p>
+             <button class="btn btn-host" onclick="nextQuestion()">▶️ السؤال التالي</button>
+           </div>` 
+          : `<p>العبوا التحدي!</p>`
+        }
+        <hr style="margin:20px 0; opacity:0.2">
+        <h3>اختر الفائز بالجولة:</h3>
+        <div id="winnerButtons" style="display:flex; flex-direction:column; gap:10px;"></div>
+      </div>
+    `;
+    socket.emit('getPlayersForWinner', roomCode);
+  } 
+  else { // Pour les JOUEURS
     if (data.type === 'rapidFire') {
        content.innerHTML = `
         <div class="glass-card">
-          <h2 class="challenge-title">⚡ RAPID FIRE!</h2>
-          <p>أسرع واحد يضغط على الزر!</p>
-          <div class="buzzer-btn" onclick="this.style.transform='scale(0.8)'; setTimeout(()=>this.style.transform='scale(1)', 100)"></div>
-          <p style="opacity:0.6">انتظر المضيف ليعلن النتيجة</p>
+          <h2 class="challenge-title">⚡ استعد!</h2>
+          <div id="buzzerArea">
+            <p>انتظر السؤال من المضيف...</p>
+          </div>
         </div>
       `;
     } else {
-      content.innerHTML = `
-        <div class="glass-card">
-          <h2 class="challenge-title">${names[data.type]}</h2>
-          <div class="timer-circle">...</div>
-          <p style="margin-top:20px">🎮 استعد للتحدي مع أصدقائك!</p>
-        </div>
-      `;
+      content.innerHTML = `<div class="glass-card"><h2>${names[data.type]}</h2><p>العب مع أصدقائك!</p></div>`;
     }
   }
-});
 
 // Host gets player buttons to pick winner
 socket.on('playersForWinner', (data) => {
