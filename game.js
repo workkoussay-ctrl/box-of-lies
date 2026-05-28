@@ -304,4 +304,60 @@ function showError(msg) {
   }
 }
 
+    // ===== RAPID FIRE FUNCTIONS =====
+
+// HOST demande la question
+function nextQuestion() {
+  socket.emit('getQuestion', roomCode);
+}
+
+// HOST reçoit la question + réponse
+socket.on('hostQuestion', (data) => {
+  document.getElementById('hostQuestionBox').innerHTML = `
+    <div style="background:rgba(0,0,0,0.3); padding:15px; border-radius:10px;">
+      <p style="font-size:1.2em; font-weight:bold;">❓ ${data.q}</p>
+      <p style="color:#43e97b; margin-top:10px;">✅ الجواب: ${data.a}</p>
+    </div>
+    <button class="btn btn-host" onclick="nextQuestion()" style="margin-top:15px">▶️ سؤال جديد</button>
+    <div id="liveBuzz" style="margin-top:15px; font-size:1.5em; color:#feca57;"></div>
+  `;
+});
+
+// JOUEUR reçoit le signal "Prêt à Buzzer"
+socket.on('readyToBuzz', () => {
+  const area = document.getElementById('buzzerArea');
+  if (area) {
+    area.innerHTML = `
+      <p style="margin-bottom:15px;">اسمع السؤال واضغط بسرعة!</p>
+      <div class="buzzer-btn" onclick="sendBuzz()">BUZZ!</div>
+    `;
+  }
+});
+
+// JOUEUR appuie sur le buzzer
+function sendBuzz() {
+  socket.emit('buzz', { roomCode, playerName });
+}
+
+// TOUT LE MONDE voit le gagnant de la vitesse
+socket.on('buzzWinner', (data) => {
+  // Affichage chez le Host
+  const liveBuzz = document.getElementById('liveBuzz');
+  if (liveBuzz) {
+    liveBuzz.innerHTML = `🥇 ${data.playerName} ضغط أولاً!`;
+  }
+  
+  // Affichage chez les Joueurs (on bloque leur bouton)
+  const area = document.getElementById('buzzerArea');
+  if (area) {
+    area.innerHTML = `
+      <div style="padding:20px; background:rgba(0,0,0,0.3); border-radius:15px;">
+        <h2>🔒 ${data.playerName}</h2>
+        <p>أجاب أولاً!</p>
+      </div>
+    `;
+  }
+});
 console.log('🎁 Game ready!');
+
+  
