@@ -38,15 +38,15 @@ socket.on('joinError', (msg) => { showError(msg); });
 
 // ===== LOBBY =====
 socket.on('updateLobby', (data) => {
-  if (myRole === 'host') {
-    renderLobby(data);
-  }
+  if (myRole === 'host') { renderLobby(data); }
   if (myRole === 'player') {
     document.getElementById('joinScreen').classList.remove('active');
     document.getElementById('gameScreen').classList.add('active');
     document.getElementById('gameContent').innerHTML = `
-      <h3>⏳ في انتظار اللاعبين...</h3>
-      <p style="font-size:1.5em">${data.playerCount}/3</p>
+      <div class="glass-card">
+        <h3>⏳ في انتظار اللاعبين...</h3>
+        <p style="font-size:2em; margin-top:10px;">${data.playerCount}/3</p>
+      </div>
     `;
   }
 });
@@ -62,210 +62,159 @@ function renderLobby(data) {
   }).join('');
   
   const startBtn = document.getElementById('startBtn');
-  if (data.playerCount >= 2) {
-    startBtn.classList.remove('hidden');
-  } else {
-    startBtn.classList.add('hidden');
-  }
+  if (data.playerCount >= 2) { startBtn.classList.remove('hidden'); } 
+  else { startBtn.classList.add('hidden'); }
 }
 
 // ===== START GAME =====
-function startGame() {
-  socket.emit('startGame', roomCode);
-}
+function startGame() { socket.emit('startGame', roomCode); }
 
 socket.on('gameStarted', () => {
-  if (myRole === 'host') {
-    document.getElementById('hostScreen').classList.remove('active');
-  }
+  if (myRole === 'host') { document.getElementById('hostScreen').classList.remove('active'); }
   document.getElementById('gameScreen').classList.add('active');
 });
 
 // ===== REVEAL BOX (Players) =====
 socket.on('revealBox', (data) => {
   myBox = data.content;
-  let boxClass = 'box-prize';
-  if (data.content.includes('$10,000')) boxClass = 'box-grand';
-  if (data.content.includes('Forfeit')) boxClass = 'box-forfeit';
+  let boxClass = data.content.includes('$10,000') ? 'box-grand' : (data.content.includes('Forfeit') ? 'box-forfeit' : 'box-prize');
   
   document.getElementById('gameContent').innerHTML = `
-    <div class="box-reveal">
+    <div class="glass-card box-reveal">
       <h3>🎁 صندوقك السري!</h3>
       <div class="box-content ${boxClass}">${data.content}</div>
-      <p style="margin-top:10px; opacity:0.7;">🤫 لا تخبر أحداً!</p>
+      <p style="opacity:0.7;">🤫 لا تخبر أحداً!</p>
     </div>
-    <p style="opacity:0.6">⏳ انتظر المضيف...</p>
   `;
 });
 
 // ===== HOST VIEW =====
 socket.on('hostView', (data) => {
   document.getElementById('gameContent').innerHTML = `
-    <h3>👑 صناديق اللاعبين</h3>
-    ${data.players.map(p => `
-      <div class="player-card filled" style="margin:8px auto; max-width:300px">
-        ${p.name}: <strong>${p.box}</strong>
-      </div>
-    `).join('')}
-    <button class="btn btn-start" onclick="nextRound()" style="margin-top:20px">
-      ⏭ ابدأ الجولة الأولى
-    </button>
+    <div class="glass-card">
+      <h3>👑 صناديق اللاعبين</h3>
+      ${data.players.map(p => `
+        <div class="player-card filled" style="margin:10px auto; max-width:300px">
+          ${p.name}: <strong>${p.box}</strong>
+        </div>
+      `).join('')}
+      <button class="btn btn-start" onclick="nextRound()" style="margin-top:20px">⏭ ابدأ الجولة</button>
+    </div>
   `;
 });
 
-// ===== NEXT ROUND =====
-function nextRound() {
-  socket.emit('nextRound', roomCode);
-}
+function nextRound() { socket.emit('nextRound', roomCode); }
 
-// ===== CHALLENGE =====
-// ===== CHALLENGE (Look Premium) =====
+// ===== CHALLENGE SYSTEM =====
 socket.on('challenge', (data) => {
-  // On change le background du body selon le type
-  document.body.className = ''; // Reset
-  document.body.classList.add('bg-' + data.type); // Ajoute la classe capitals, rapidFire, etc.
-
-  document.getElementById('roundBadge').innerHTML = 
-    `<span class="glass-card" style="padding: 5px 15px;">🏆 الجولة ${data.round}/${data.totalRounds}</span>`;
+  document.body.className = 'bg-' + data.type;
+  document.getElementById('roundBadge').innerHTML = `<span class="glass-card" style="padding:5px 15px;">🏆 الجولة ${data.round}/${data.totalRounds}</span>`;
   
-  const names = {
-    capitals: '🌍 عواصم الدول',
-    cardGame: '🃏 لعبة ورق',
-    rapidFire: '⚡ أسئلة سريعة 🇹🇳',
-    guessWho: '🕵️ من هو؟'
-  };
-  
+  const names = { capitals: '🌍 عواصم الدول', cardGame: '🃏 لعبة ورق', rapidFire: '⚡ أسئلة سريعة 🇹🇳', guessWho: '🕵️ من هو؟' };
   const content = document.getElementById('gameContent');
   
   if (myRole === 'host') {
     content.innerHTML = `
       <div class="glass-card">
         <h2 class="challenge-title">${names[data.type]}</h2>
-        <p>العبوا التحدي الآن!</p>
-        <div style="margin-top:30px">
-          <h3>من هو الفائز؟</h3>
-          <div id="winnerButtons" style="display:flex; flex-direction:column; gap:10px; margin-top:15px"></div>
-        </div>
+        ${data.type === 'rapidFire' ? 
+          `<div id="hostQuiz">
+             <button class="btn btn-host" onclick="startQuiz()">🚀 ابدأ الأسئلة</button>
+           </div>` : `<p>العبوا التحدي!</p>`}
+        <hr style="margin:20px 0; opacity:0.2">
+        <h3>اختر الفائز بالجولة:</h3>
+        <div id="winnerButtons" style="display:flex; flex-direction:column; gap:10px; margin-top:15px"></div>
       </div>
     `;
     socket.emit('getPlayersForWinner', roomCode);
   } else {
-    // Si c'est le Rapid Fire, on affiche un Gros Buzzer !
-  // Dans socket.on('challenge', (data) => { ... })
-
-  if (myRole === 'host') {
-    // Le HOST voit un bouton pour lancer la première question
-    content.innerHTML = `
-      <div class="glass-card">
-        <h2 class="challenge-title">${names[data.type]}</h2>
-        ${data.type === 'rapidFire' ? 
-          `<div id="hostQuestionBox">
-             <p>اضغط لعرض السؤال الأول</p>
-             <button class="btn btn-host" onclick="nextQuestion()">▶️ السؤال التالي</button>
-           </div>` 
-          : `<p>العبوا التحدي!</p>`
-        }
-        <hr style="margin:20px 0; opacity:0.2">
-        <h3>اختر الفائز بالجولة:</h3>
-        <div id="winnerButtons" style="display:flex; flex-direction:column; gap:10px;"></div>
-      </div>
-    `;
-    socket.emit('getPlayersForWinner', roomCode);
-  } 
-  else { // Pour les JOUEURS
     if (data.type === 'rapidFire') {
-       content.innerHTML = `
-        <div class="glass-card">
-          <h2 class="challenge-title">⚡ استعد!</h2>
-          <div id="buzzerArea">
-            <p>انتظر السؤال من المضيف...</p>
-          </div>
-        </div>
-      `;
+      content.innerHTML = `<div class="glass-card"><h2 class="challenge-title">⚡ استعد!</h2><div id="buzzerArea"><p>انتظر المضيف...</p></div></div>`;
     } else {
       content.innerHTML = `<div class="glass-card"><h2>${names[data.type]}</h2><p>العب مع أصدقائك!</p></div>`;
     }
   }
+});
 
-// Host gets player buttons to pick winner
+// Winner Selection
 socket.on('playersForWinner', (data) => {
   const div = document.getElementById('winnerButtons');
   if (div) {
-    div.innerHTML = data.players.map(p => `
-      <button class="btn" onclick="pickWinner('${p.id}')">${p.name}</button>
-    `).join('');
+    div.innerHTML = data.players.map(p => `<button class="btn" onclick="pickWinner('${p.id}')">${p.name}</button>`).join('');
+  }
+});
+function pickWinner(winnerId) { socket.emit('challengeWinner', { roomCode, winnerId }); }
+
+// ===== RAPID FIRE LOGIC =====
+function startQuiz() { socket.emit('startRapidFire', roomCode); }
+function goNextQuestion() { socket.emit('nextQuestion', roomCode); }
+
+socket.on('newQuestion', (data) => {
+  const box = document.getElementById('hostQuiz');
+  if (box) {
+    box.innerHTML = `
+      <div style="background:rgba(0,0,0,0.4); padding:15px; border-radius:15px; margin-bottom:15px;">
+        <p>السؤال ${data.current}/10</p>
+        <p style="font-size:1.2em; font-weight:bold; margin:10px 0;">❓ ${data.q}</p>
+        <p style="color:#43e97b;">✅ الجواب: ${data.a}</p>
+      </div>
+      <div id="liveBuzz" style="color:#feca57; font-size:1.4em; font-weight:bold; min-height:40px;">⏳ انتظر البَزّ...</div>
+      <button class="btn btn-host" onclick="goNextQuestion()">▶️ السؤال التالي</button>
+    `;
   }
 });
 
-function pickWinner(winnerId) {
-  socket.emit('challengeWinner', { roomCode, winnerId });
-}
+socket.on('buzzerActive', () => {
+  const area = document.getElementById('buzzerArea');
+  if (area) { area.innerHTML = `<p>🔥 اضغط بسرعة!</p><div class="buzzer-btn" onclick="sendBuzz()">BUZZ!</div>`; }
+});
+
+function sendBuzz() { socket.emit('buzz', { roomCode, playerName }); }
+
+socket.on('buzzWinner', (data) => {
+  const lb = document.getElementById('liveBuzz');
+  if (lb) lb.innerHTML = `🥇 ${data.playerName} ضغط أولاً!`;
+  const area = document.getElementById('buzzerArea');
+  if (area) area.innerHTML = `<div style="padding:20px; background:rgba(67,233,123,0.2); border-radius:15px;"><h2>🥇 ${data.playerName}</h2><p>أجاب أولاً!</p></div>`;
+});
+
+socket.on('quizFinished', () => {
+  const hq = document.getElementById('hostQuiz');
+  if (hq) hq.innerHTML = `<h2>🏁 انتهت الأسئلة!</h2><p>اختر الفائز الآن</p>`;
+});
 
 // ===== SWAP PHASE =====
 socket.on('swapPhase', (data) => {
+  const content = document.getElementById('gameContent');
   if (myRole === 'host') {
-    document.getElementById('gameContent').innerHTML = `
-      <div class="box-reveal">
-        <h3>🔄 ${data.winnerName} فاز!</h3>
-        <p>ينتظر قراره...</p>
-      </div>
-    `;
+    content.innerHTML = `<div class="glass-card"><h3>🔄 ${data.winnerName} فاز!</h3><p>ينتظر قراره...</p></div>`;
   } else if (myId === data.winnerId) {
-    // Winner sees swap options (added below)
-    document.getElementById('gameContent').innerHTML = `
-      <div class="box-reveal">
-        <h3>🎉 أنت الفائز!</h3>
-        <p>صندوقك: ${myBox}</p>
-      </div>
-      <div id="swapArea"></div>
-    `;
+    content.innerHTML = `<div class="glass-card"><h3>🎉 أنت الفائز!</h3><p>صندوقك الحالي: ${myBox}</p><div id="swapArea"></div></div>`;
   } else {
-    document.getElementById('gameContent').innerHTML = `
-      <div class="box-reveal">
-        <h3>⏳ ${data.winnerName} فاز</h3>
-        <p>ينتظر قراره...</p>
-      </div>
-    `;
+    content.innerHTML = `<div class="glass-card"><h3>⏳ ${data.winnerName} فاز</h3><p>يقرر الآن...</p></div>`;
   }
 });
 
-// Winner gets swap choices
 socket.on('playersToSwap', (data) => {
   const area = document.getElementById('swapArea');
   if (area) {
-    area.innerHTML = `
-      <div class="swap-options">
-        <div class="swap-choice" onclick="keepBox()" style="border-color:#43e97b">
-          🛑 أحتفظ بصندوقي
-        </div>
-        ${data.players.map(p => `
-          <div class="swap-choice" onclick="swapWith('${p.id}')">
-            🔄 بدّل مع ${p.name}
-          </div>
-        `).join('')}
-      </div>
-    `;
+    area.innerHTML = `<div class="swap-options">
+      <div class="swap-choice" onclick="keepBox()" style="border-color:#43e97b">🛑 أحتفظ بصندوقي</div>
+      ${data.players.map(p => `<div class="swap-choice" onclick="swapWith('${p.id}')">🔄 بدّل مع ${p.name}</div>`).join('')}
+    </div>`;
   }
 });
 
-function keepBox() {
-  socket.emit('swapChoice', { roomCode, winnerId: myId, keep: true });
-}
+function keepBox() { socket.emit('swapChoice', { roomCode, winnerId: myId, keep: true }); }
+function swapWith(targetId) { socket.emit('swapChoice', { roomCode, winnerId: myId, targetId, keep: false }); }
 
-function swapWith(targetId) {
-  socket.emit('swapChoice', { roomCode, winnerId: myId, targetId, keep: false });
-}
-
-// ===== SWAP RESULT =====
 socket.on('swapResult', (data) => {
   document.getElementById('gameContent').innerHTML = `
-    <div class="box-reveal">
+    <div class="glass-card">
       <h3>${data.winnerName}</h3>
       <p style="font-size:1.3em">${data.swapped ? '🔄 بدّل الصندوق!' : '🛑 احتفظ بصندوقه'}</p>
     </div>
-    ${myRole === 'host' ? 
-      '<button class="btn btn-start" onclick="nextRound()">⏭ الجولة التالية</button>' 
-      : '<p style="opacity:0.6">⏳ انتظر المضيف...</p>'}
+    ${myRole === 'host' ? `<button class="btn btn-start" onclick="nextRound()">⏭ الجولة التالية</button>` : `<p>⏳ انتظر المضيف...</p>`}
   `;
 });
 
@@ -273,91 +222,18 @@ socket.on('swapResult', (data) => {
 socket.on('finalReveal', (data) => {
   document.getElementById('roundBadge').innerHTML = '🏁 النهاية!';
   document.getElementById('gameContent').innerHTML = `
-    <h2 style="margin:20px 0">🎉 النتائج النهائية!</h2>
-    ${data.players.map(p => {
-      const isWinner = p.box.includes('$10,000');
-      return `
-        <div class="final-card ${isWinner ? 'box-grand winner-glow' : ''}">
-          <strong>${p.name}</strong>
-          <p style="font-size:1.3em; margin-top:5px">${p.box}</p>
-          ${isWinner ? '<p style="font-size:1.4em">👑 الفائز!</p>' : ''}
-        </div>
-      `;
-    }).join('')}
-    <button class="btn btn-host" onclick="location.reload()">🔄 لعبة جديدة</button>
-  `;
-});
-
-socket.on('hostLeft', () => {
-  document.getElementById('gameContent').innerHTML = `
-    <h2>😢 المضيف غادر</h2>
-    <button class="btn" onclick="location.reload()">🔄 رجوع</button>
+    <div class="glass-card">
+      <h2 style="margin-bottom:20px">🎉 النتائج النهائية!</h2>
+      ${data.players.map(p => {
+        const isWinner = p.box.includes('$10,000');
+        return `<div class="final-card ${isWinner ? 'winner-glow' : ''}"><strong>${p.name}</strong><br>${p.box}</div>`;
+      }).join('')}
+      <button class="btn btn-host" onclick="location.reload()">🔄 لعبة جديدة</button>
+    </div>
   `;
 });
 
 function showError(msg) {
   const el = document.getElementById('errorMsg');
-  if (el) {
-    el.textContent = msg;
-    el.classList.remove('hidden');
-    setTimeout(() => el.classList.add('hidden'), 3000);
-  }
+  if (el) { el.textContent = msg; el.classList.remove('hidden'); setTimeout(() => el.classList.add('hidden'), 3000); }
 }
-
-    // ===== RAPID FIRE FUNCTIONS =====
-
-// HOST demande la question
-function nextQuestion() {
-  socket.emit('getQuestion', roomCode);
-}
-
-// HOST reçoit la question + réponse
-socket.on('hostQuestion', (data) => {
-  document.getElementById('hostQuestionBox').innerHTML = `
-    <div style="background:rgba(0,0,0,0.3); padding:15px; border-radius:10px;">
-      <p style="font-size:1.2em; font-weight:bold;">❓ ${data.q}</p>
-      <p style="color:#43e97b; margin-top:10px;">✅ الجواب: ${data.a}</p>
-    </div>
-    <button class="btn btn-host" onclick="nextQuestion()" style="margin-top:15px">▶️ سؤال جديد</button>
-    <div id="liveBuzz" style="margin-top:15px; font-size:1.5em; color:#feca57;"></div>
-  `;
-});
-
-// JOUEUR reçoit le signal "Prêt à Buzzer"
-socket.on('readyToBuzz', () => {
-  const area = document.getElementById('buzzerArea');
-  if (area) {
-    area.innerHTML = `
-      <p style="margin-bottom:15px;">اسمع السؤال واضغط بسرعة!</p>
-      <div class="buzzer-btn" onclick="sendBuzz()">BUZZ!</div>
-    `;
-  }
-});
-
-// JOUEUR appuie sur le buzzer
-function sendBuzz() {
-  socket.emit('buzz', { roomCode, playerName });
-}
-
-// TOUT LE MONDE voit le gagnant de la vitesse
-socket.on('buzzWinner', (data) => {
-  // Affichage chez le Host
-  const liveBuzz = document.getElementById('liveBuzz');
-  if (liveBuzz) {
-    liveBuzz.innerHTML = `🥇 ${data.playerName} ضغط أولاً!`;
-  }
-  
-  // Affichage chez les Joueurs (on bloque leur bouton)
-  const area = document.getElementById('buzzerArea');
-  if (area) {
-    area.innerHTML = `
-      <div style="padding:20px; background:rgba(0,0,0,0.3); border-radius:15px;">
-        <h2>🔒 ${data.playerName}</h2>
-        <p>أجاب أولاً!</p>
-      </div>
-    `;
-  }
-});
-console.log('🎁 Game ready!');
-
-  
