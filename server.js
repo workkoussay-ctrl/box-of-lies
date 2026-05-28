@@ -13,7 +13,7 @@ const io = socketIo(server, {
 
 app.use(express.static('public'));
 
-// Tunisian trivia 🇹🇳
+// 🇹🇳 Tunisian trivia (3 players version)
 const tunisianQuestions = [
   { q: "من هو أول لاعب تونسي في الدوري الإسباني؟", a: "عادل العالمي" },
   { q: "فريق التطواني يلعب في أي مدينة؟", a: "تطاوين" },
@@ -39,7 +39,7 @@ io.on('connection', (socket) => {
       host: socket.id,
       players: [],
       currentRound: 0,
-      totalRounds: 5,
+      totalRounds: 3,  // ⬅️ Less rounds for 3 players
       gameStarted: false
     };
     socket.join(roomCode);
@@ -47,10 +47,10 @@ io.on('connection', (socket) => {
     console.log('🏠 Room created:', roomCode);
   });
 
-  // Join room
+  // Join room (max 3 players now!)
   socket.on('joinRoom', ({ roomCode, playerName }) => {
     const room = rooms[roomCode];
-    if (room && !room.gameStarted && room.players.length < 4) {
+    if (room && !room.gameStarted && room.players.length < 3) {  // ⬅️ Changed to 3
       room.players.push({
         id: socket.id,
         name: playerName,
@@ -59,30 +59,30 @@ io.on('connection', (socket) => {
       socket.join(roomCode);
       io.to(roomCode).emit('updateLobby', {
         players: room.players,
-        playerCount: room.players.length
+        playerCount: room.players.length,
+        maxPlayers: 3  // ⬅️ Added
       });
       console.log(`👤 ${playerName} joined room ${roomCode}`);
     } else {
-      socket.emit('joinError', 'Room full or not found');
+      socket.emit('joinError', 'الغرفة ممتلئة أو غير موجودة!');
     }
   });
 
   // Start game
   socket.on('startGame', (roomCode) => {
     const room = rooms[roomCode];
-    if (!room || room.players.length < 3) return;
+    if (!room || room.players.length < 2) return;  // ⬅️ Min 2 players now
     
     room.gameStarted = true;
     
+    // ⬅️ 3 boxes only: $10K, Prize, Forfeit
     const contents = [
       '💰 $10,000',
       '🎁 Prize',
-      '🎁 Prize', 
-      '😈 Forfeit',
       '😈 Forfeit'
     ];
     
-    // Fixed: only shuffle among players who exist
+    // Shuffle
     for (let i = contents.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [contents[i], contents[j]] = [contents[j], contents[i]];
@@ -132,7 +132,7 @@ io.on('connection', (socket) => {
       winnerName: winner?.name || 'Unknown'
     });
     
-    // Send player list to winner for swap choice
+    // Send player list to winner (only 2 others now)
     io.to(winnerId).emit('playersToSwap', {
       players: room.players.filter(p => p.id !== winnerId)
     });
@@ -147,12 +147,10 @@ io.on('connection', (socket) => {
     
     if (!keep && targetId) {
       const target = room.players.find(p => p.id === targetId);
-      // Swap boxes
       const tempBox = winner.box;
       winner.box = target.box;
       target.box = tempBox;
       
-      // Update both players
       io.to(winnerId).emit('revealBox', { content: winner.box });
       io.to(targetId).emit('revealBox', { content: target.box });
     }
@@ -162,7 +160,7 @@ io.on('connection', (socket) => {
       swapped: !keep
     });
 
-    // Check if game over
+    // Check if game over (3 rounds max)
     if (room.currentRound >= room.totalRounds) {
       setTimeout(() => {
         io.to(roomCode).emit('finalReveal', { players: room.players });
@@ -202,7 +200,8 @@ io.on('connection', (socket) => {
         room.players = room.players.filter(p => p.id !== socket.id);
         io.to(roomCode).emit('updateLobby', {
           players: room.players,
-          playerCount: room.players.length
+          playerCount: room.players.length,
+          maxPlayers: 3
         });
       }
     }
@@ -211,6 +210,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🎮 Box of Lies running on port ${PORT}`);
-  console.log(`📱 Access at: http://localhost:${PORT}`);
+  console.log(`🎮 Box of Lies (3 players) running on port ${PORT}`);
 });
