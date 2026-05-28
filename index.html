@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1a1a2e">
+  <title>🎁 صندوق الكذب</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- SPLASH -->
+    <div id="splash" class="screen active">
+      <div class="logo">
+        <h1>🎁</h1>
+        <h2>صندوق الكذب</h2>
+        <p>اللعبة الجماعية 🇹🇳</p>
+      </div>
+      <button onclick="selectRole('host')" class="btn btn-host">👑 أنشئ غرفة</button>
+      <button onclick="selectRole('player')" class="btn btn-player">🎮 انضم للعبة</button>
+    </div>
+
+    <!-- HOST SCREEN -->
+    <div id="hostScreen" class="screen">
+      <h2>👑 غرفة جديدة</h2>
+      <div id="hostRoomCode" class="room-code-box"></div>
+      <p>أرسل الكود للأصدقاء</p>
+      <div id="lobbyPlayers" class="lobby-grid"></div>
+      <button id="startBtn" class="btn btn-start hidden" onclick="startGame()">🚀 ابدأ اللعبة!</button>
+    </div>
+
+    <!-- PLAYER JOIN SCREEN -->
+    <div id="joinScreen" class="screen">
+      <h2>🎮 انضم للعبة</h2>
+      <input type="text" id="playerName" class="input" placeholder="اسمك..." maxlength="15">
+      <input type="text" id="roomCodeInput" class="input" placeholder="كود الغرفة" maxlength="5" style="text-transform:uppercase">
+      <button onclick="joinRoom()" class="btn">✅ انضم</button>
+      <div id="errorMsg" class="error hidden"></div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="gameScreen" class="screen">
+      <div id="roundBadge"></div>
+      <div id="gameContent" class="game-area"></div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
