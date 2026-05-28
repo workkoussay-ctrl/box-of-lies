@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path'); // ⬅️ ADD THIS LINE
 const http = require('http');
 const socketIo = require('socket.io');
 
@@ -11,7 +12,11 @@ const io = socketIo(server, {
   }
 });
 
-app.use(express.static('public'));
+// ⬇️ REPLACE THESE LINES:
+app.use(express.static(path.join(__dirname, 'public')));
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // 🇹🇳 Tunisian trivia (3 players version)
 const tunisianQuestions = [
