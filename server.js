@@ -86,6 +86,13 @@ io.on('connection', (socket) => {
       totalRounds: room.totalRounds
     });
   });
+    // ⬇️ ADD THIS - Host needs player list to pick winner
+  socket.on('getPlayersForWinner', (roomCode) => {
+    const room = rooms[roomCode];
+    if (room) {
+      io.to(room.host).emit('playersForWinner', { players: room.players });
+    }
+  });
 
   socket.on('challengeWinner', ({ roomCode, winnerId }) => {
     const room = rooms[roomCode];
