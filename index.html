@@ -3,46 +3,57 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>🎁 صندوق الكذب Premium</title>
+  <title>🎁 صندوق الكذب</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="app">
     <!-- SPLASH -->
     <div id="splash" class="screen active">
-      <div class="glass-card" style="text-align: center; margin-top: 50px;">
-        <h1 style="font-size: 4em;">🎁</h1>
-        <h2 style="font-size: 2em; margin: 10px 0;">صندوق الكذب</h2>
-        <p style="opacity: 0.7; margin-bottom: 30px;">Multiplayer Party Game</p>
-        <button onclick="selectRole('host')" class="btn btn-host">👑 أنشئ غرفة (HOST)</button>
-        <button onclick="selectRole('player')" class="btn btn-player">🎮 انضم للعبة (PLAYER)</button>
+      <div class="glass-card" style="text-align:center; margin-top:50px;">
+        <h1 style="font-size:4em;">🎁</h1>
+        <h2 style="font-size:2em; margin:10px 0;">صندوق الكذب</h2>
+        <p style="opacity:0.7; margin-bottom:30px;">Party Game 🇹🇳</p>
+        <button onclick="selectRole('host')" class="btn btn-host">👑 أنشئ غرفة</button>
+        <button onclick="selectRole('player')" class="btn btn-player">🎮 انضم للعبة</button>
       </div>
     </div>
 
     <!-- HOST SCREEN -->
     <div id="hostScreen" class="screen">
       <div class="glass-card">
-        <h2 style="color: #feca57;">👑 غرفة المضيف</h2>
-        <div id="hostRoomCode" class="room-code-box" style="font-size: 3em; font-weight: 900; background: rgba(0,0,0,0.2); border-radius: 15px; margin: 20px 0; padding: 10px;">----</div>
+        <h2 style="color:#feca57;">👑 غرفة المضيف</h2>
+        <div id="hostRoomCode" style="font-size:3em; font-weight:900; background:rgba(0,0,0,0.2); border-radius:15px; margin:20px 0; padding:15px; letter-spacing:5px;">----</div>
         <div id="lobbyPlayers" class="lobby-grid"></div>
-        <button id="startBtn" class="btn btn-start hidden" onclick="startGame()">🚀 ابدأ اللعبة الآن!</button>
       </div>
+
+      <!-- Configuration des boîtes -->
+      <div id="boxSetup" class="glass-card" style="margin-top:15px;">
+        <h3 style="color:#ffd700;">🧩 إعداد الصناديق</h3>
+        <p style="opacity:0.6; font-size:0.9em; margin-bottom:10px;">اكتب جملة + إيموجي</p>
+        <input id="grandLabel" class="input" value="👑 10DT" placeholder="الجائزة الكبرى"/>
+        <input id="forfeit1Label" class="input" value="😈 10 pompes" placeholder="عقاب 1"/>
+        <input id="forfeit2Label" class="input" value="🖐️ giflet des tes amis" placeholder="عقاب 2"/>
+        <button class="btn btn-host" onclick="submitBoxes()">✅ تأكيد الصناديق</button>
+      </div>
+
+      <button id="startBtn" class="btn btn-start hidden" onclick="startGame()" style="margin-top:15px;">🚀 ابدأ اللعبة!</button>
     </div>
 
-    <!-- PLAYER JOIN SCREEN -->
+    <!-- PLAYER JOIN -->
     <div id="joinScreen" class="screen">
       <div class="glass-card">
         <h2>🎮 انضم للأصدقاء</h2>
         <input type="text" id="playerName" class="input" placeholder="اسمك المستعار">
         <input type="text" id="roomCodeInput" class="input" placeholder="كود الغرفة">
         <button onclick="joinRoom()" class="btn btn-player">✅ دخول</button>
-        <div id="errorMsg" class="error hidden" style="color: #ff6b6b; margin-top: 10px;"></div>
+        <div id="errorMsg" class="error hidden"></div>
       </div>
     </div>
 
     <!-- GAME SCREEN -->
     <div id="gameScreen" class="screen">
-      <div id="roundBadge" style="text-align: center; margin-bottom: 15px;"></div>
+      <div id="roundBadge" style="text-align:center; margin-bottom:15px;"></div>
       <div id="gameContent" class="game-area"></div>
     </div>
   </div>
