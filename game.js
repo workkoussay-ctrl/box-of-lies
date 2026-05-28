@@ -4,6 +4,34 @@ let playerName = '';
 let roomCode = '';
 let myBox = null;
 let myId = null;
+let buzzerCtx = null;
+
+// ===== SON BUZZER =====
+function playBuzzerSound() {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    if (!buzzerCtx) buzzerCtx = new AudioContext();
+    if (buzzerCtx.state === 'suspended') buzzerCtx.resume();
+
+    const now = buzzerCtx.currentTime;
+    const osc = buzzerCtx.createOscillator();
+    const gain = buzzerCtx.createGain();
+
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(1000, now);
+    osc.frequency.exponentialRampToValueAtTime(300, now + 0.12);
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.35, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.15);
+
+    osc.connect(gain);
+    gain.connect(buzzerCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.16);
+  } catch (e) {}
+}
 
 // ===== ROLE SELECT =====
 function selectRole(role) {
@@ -19,7 +47,6 @@ function selectRole(role) {
 
 socket.on('connect', () => { myId = socket.id; });
 
-// ===== ROOM CREATED =====
 socket.on('roomCreated', (code) => {
   roomCode = code;
   document.getElementById('hostRoomCode').textContent = code;
@@ -60,11 +87,27 @@ function renderLobby(data) {
       ${player ? '🎮 ' + player.name : '⭕ فارغ'}
     </div>`;
   }).join('');
-  
+
   const startBtn = document.getElementById('startBtn');
-  if (data.playerCount >= 2) { startBtn.classList.remove('hidden'); } 
+  if (data.playerCount >= 2) { startBtn.classList.remove('hidden'); }
   else { startBtn.classList.add('hidden'); }
 }
+
+// ===== HOST CONFIGURE BOXES =====
+function submitBoxes() {
+  if (myRole !== 'host') return;
+  const grandLabel = document.getElementById('grandLabel').value;
+  const forfeit1Label = document.getElementById('forfeit1Label').value;
+  const forfeit2Label = document.getElementById('forfeit2Label').value;
+  socket.emit('setBoxes', { roomCode, grandLabel, forfeit1Label, forfeit2Label });
+}
+
+socket.on('boxesReady', () => {
+  const setup = document.getElementById('boxSetup');
+  if (setup) {
+    setup.innerHTML = `<h3 style="color:#43e97b;">✅ تم تجهيز الصناديق!</h3>`;
+  }
+});
 
 // ===== START GAME =====
 function startGame() { socket.emit('startGame', roomCode); }
@@ -76,13 +119,14 @@ socket.on('gameStarted', () => {
 
 // ===== REVEAL BOX (Players) =====
 socket.on('revealBox', (data) => {
-  myBox = data.content;
-  let boxClass = data.content.includes('$10,000') ? 'box-grand' : (data.content.includes('Forfeit') ? 'box-forfeit' : 'box-prize');
-  
+  myBox = data.content.label;
+  const boxType = data.content.type;
+  let boxClass = boxType === 'grand' ? 'box-grand' : 'box-forfeit';
+
   document.getElementById('gameContent').innerHTML = `
     <div class="glass-card box-reveal">
       <h3>🎁 صندوقك السري!</h3>
-      <div class="box-content ${boxClass}">${data.content}</div>
+      <div class="box-content ${boxClass}">${data.content.label}</div>
       <p style="opacity:0.7;">🤫 لا تخبر أحداً!</p>
     </div>
   `;
@@ -95,7 +139,7 @@ socket.on('hostView', (data) => {
       <h3>👑 صناديق اللاعبين</h3>
       ${data.players.map(p => `
         <div class="player-card filled" style="margin:10px auto; max-width:300px">
-          ${p.name}: <strong>${p.box}</strong>
+          ${p.name}: <strong>${p.box.label}</strong>
         </div>
       `).join('')}
       <button class="btn btn-start" onclick="nextRound()" style="margin-top:20px">⏭ ابدأ الجولة</button>
@@ -105,19 +149,19 @@ socket.on('hostView', (data) => {
 
 function nextRound() { socket.emit('nextRound', roomCode); }
 
-// ===== CHALLENGE SYSTEM =====
+// ===== CHALLENGE =====
 socket.on('challenge', (data) => {
   document.body.className = 'bg-' + data.type;
   document.getElementById('roundBadge').innerHTML = `<span class="glass-card" style="padding:5px 15px;">🏆 الجولة ${data.round}/${data.totalRounds}</span>`;
-  
+
   const names = { capitals: '🌍 عواصم الدول', cardGame: '🃏 لعبة ورق', rapidFire: '⚡ أسئلة سريعة 🇹🇳', guessWho: '🕵️ من هو؟' };
   const content = document.getElementById('gameContent');
-  
+
   if (myRole === 'host') {
     content.innerHTML = `
       <div class="glass-card">
         <h2 class="challenge-title">${names[data.type]}</h2>
-        ${data.type === 'rapidFire' ? 
+        ${data.type === 'rapidFire' ?
           `<div id="hostQuiz">
              <button class="btn btn-host" onclick="startQuiz()">🚀 ابدأ الأسئلة</button>
            </div>` : `<p>العبوا التحدي!</p>`}
@@ -136,7 +180,7 @@ socket.on('challenge', (data) => {
   }
 });
 
-// Winner Selection
+// Winner selection
 socket.on('playersForWinner', (data) => {
   const div = document.getElementById('winnerButtons');
   if (div) {
@@ -145,7 +189,7 @@ socket.on('playersForWinner', (data) => {
 });
 function pickWinner(winnerId) { socket.emit('challengeWinner', { roomCode, winnerId }); }
 
-// ===== RAPID FIRE LOGIC =====
+// ===== RAPID FIRE =====
 function startQuiz() { socket.emit('startRapidFire', roomCode); }
 function goNextQuestion() { socket.emit('nextQuestion', roomCode); }
 
@@ -169,9 +213,13 @@ socket.on('buzzerActive', () => {
   if (area) { area.innerHTML = `<p>🔥 اضغط بسرعة!</p><div class="buzzer-btn" onclick="sendBuzz()">BUZZ!</div>`; }
 });
 
-function sendBuzz() { socket.emit('buzz', { roomCode, playerName }); }
+function sendBuzz() {
+  playBuzzerSound();
+  socket.emit('buzz', { roomCode, playerName });
+}
 
 socket.on('buzzWinner', (data) => {
+  playBuzzerSound();
   const lb = document.getElementById('liveBuzz');
   if (lb) lb.innerHTML = `🥇 ${data.playerName} ضغط أولاً!`;
   const area = document.getElementById('buzzerArea');
@@ -180,10 +228,10 @@ socket.on('buzzWinner', (data) => {
 
 socket.on('quizFinished', () => {
   const hq = document.getElementById('hostQuiz');
-  if (hq) hq.innerHTML = `<h2>🏁 انتهت الأسئلة!</h2><p>اختر الفائز الآن</p>`;
+  if (hq) hq.innerHTML = `<h2>🏁 انتهت الأسئلة!</h2><p>اختر الفائز الآن من الأسفل</p>`;
 });
 
-// ===== SWAP PHASE =====
+// ===== SWAP =====
 socket.on('swapPhase', (data) => {
   const content = document.getElementById('gameContent');
   if (myRole === 'host') {
@@ -225,11 +273,18 @@ socket.on('finalReveal', (data) => {
     <div class="glass-card">
       <h2 style="margin-bottom:20px">🎉 النتائج النهائية!</h2>
       ${data.players.map(p => {
-        const isWinner = p.box.includes('$10,000');
-        return `<div class="final-card ${isWinner ? 'winner-glow' : ''}"><strong>${p.name}</strong><br>${p.box}</div>`;
+        const isWinner = p.box.type === 'grand';
+        return `<div class="final-card ${isWinner ? 'winner-glow' : ''}"><strong>${p.name}</strong><br>${p.box.label}${isWinner ? '<br>👑 الفائز!' : ''}</div>`;
       }).join('')}
       <button class="btn btn-host" onclick="location.reload()">🔄 لعبة جديدة</button>
     </div>
+  `;
+});
+
+socket.on('hostLeft', () => {
+  document.getElementById('gameContent').innerHTML = `
+    <div class="glass-card"><h2>😢 المضيف غادر</h2>
+    <button class="btn" onclick="location.reload()">🔄 رجوع</button></div>
   `;
 });
 
@@ -237,3 +292,5 @@ function showError(msg) {
   const el = document.getElementById('errorMsg');
   if (el) { el.textContent = msg; el.classList.remove('hidden'); setTimeout(() => el.classList.add('hidden'), 3000); }
 }
+
+console.log('🎁 Game ready!');
