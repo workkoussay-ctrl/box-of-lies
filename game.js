@@ -119,9 +119,14 @@ function nextRound() {
 }
 
 // ===== CHALLENGE =====
+// ===== CHALLENGE (Look Premium) =====
 socket.on('challenge', (data) => {
+  // On change le background du body selon le type
+  document.body.className = ''; // Reset
+  document.body.classList.add('bg-' + data.type); // Ajoute la classe capitals, rapidFire, etc.
+
   document.getElementById('roundBadge').innerHTML = 
-    `🏆 الجولة ${data.round}/${data.totalRounds}`;
+    `<span class="glass-card" style="padding: 5px 15px;">🏆 الجولة ${data.round}/${data.totalRounds}</span>`;
   
   const names = {
     capitals: '🌍 عواصم الدول',
@@ -130,20 +135,40 @@ socket.on('challenge', (data) => {
     guessWho: '🕵️ من هو؟'
   };
   
+  const content = document.getElementById('gameContent');
+  
   if (myRole === 'host') {
-    document.getElementById('gameContent').innerHTML = `
-      <h2 class="challenge-title">${names[data.type]}</h2>
-      <p>العبوا التحدي!</p>
-      <h3 style="margin-top:20px">من فاز؟</h3>
-      <div id="winnerButtons"></div>
+    content.innerHTML = `
+      <div class="glass-card">
+        <h2 class="challenge-title">${names[data.type]}</h2>
+        <p>العبوا التحدي الآن!</p>
+        <div style="margin-top:30px">
+          <h3>من هو الفائز؟</h3>
+          <div id="winnerButtons" style="display:flex; flex-direction:column; gap:10px; margin-top:15px"></div>
+        </div>
+      </div>
     `;
     socket.emit('getPlayersForWinner', roomCode);
   } else {
-    document.getElementById('gameContent').innerHTML = `
-      <h2 class="challenge-title">${names[data.type]}</h2>
-      <p style="margin-top:20px">🎮 العب التحدي مع أصدقائك!</p>
-      <p style="opacity:0.6; margin-top:15px">⏳ المضيف سيعلن الفائز...</p>
-    `;
+    // Si c'est le Rapid Fire, on affiche un Gros Buzzer !
+    if (data.type === 'rapidFire') {
+       content.innerHTML = `
+        <div class="glass-card">
+          <h2 class="challenge-title">⚡ RAPID FIRE!</h2>
+          <p>أسرع واحد يضغط على الزر!</p>
+          <div class="buzzer-btn" onclick="this.style.transform='scale(0.8)'; setTimeout(()=>this.style.transform='scale(1)', 100)"></div>
+          <p style="opacity:0.6">انتظر المضيف ليعلن النتيجة</p>
+        </div>
+      `;
+    } else {
+      content.innerHTML = `
+        <div class="glass-card">
+          <h2 class="challenge-title">${names[data.type]}</h2>
+          <div class="timer-circle">...</div>
+          <p style="margin-top:20px">🎮 استعد للتحدي مع أصدقائك!</p>
+        </div>
+      `;
+    }
   }
 });
 
